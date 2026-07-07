@@ -8,6 +8,7 @@ import crawler.models.PageResult;
 import crawler.services.Crawler;
 import crawler.utils.HttpUtils;
 import mpi.MPI;
+import mpi.Status;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,6 +21,7 @@ public class MpjDistributedCrawlerImpl implements Crawler {
 
     private static final String DEFAULT_REPORTER_FILENAME = "report.txt";
     private static final String STOP_TASK = "__STOP_CRAWLER_WORKER__";
+    private static final int NO_PAGE_LIMIT = Integer.MAX_VALUE;
 
     private final Queue<String> queue = new LinkedList<>();
     private final Set<String> visited = new HashSet<>();
@@ -29,15 +31,24 @@ public class MpjDistributedCrawlerImpl implements Crawler {
     private final DomainFilter domainFilter;
     private final String reporterFilename;
     private final int processCount;
+    // private final int maxPages;
+    // private int scheduledPages = 0;
 
+    /*
     public MpjDistributedCrawlerImpl(String url, int processCount) {
-        this(url, DEFAULT_REPORTER_FILENAME, processCount);
+        this(url, DEFAULT_REPORTER_FILENAME, processCount, NO_PAGE_LIMIT);
     }
 
     public MpjDistributedCrawlerImpl(String url, String reportFileName, int processCount) {
+        this(url, reportFileName, processCount, NO_PAGE_LIMIT);
+    }
+    */
+
+    public MpjDistributedCrawlerImpl(String url, String reportFileName, int processCount /* int maxPages */) {
         this.domainFilter = new DomainFilter(url);
         this.reporterFilename = reportFileName;
         this.processCount = processCount;
+        //this.maxPages = maxPages;
         this.queue.add(url);
         this.seen.add(url);
         this.urlToParentUrlMap.put(url, null);
@@ -54,52 +65,60 @@ public class MpjDistributedCrawlerImpl implements Crawler {
         boolean[] workerIsActive = new boolean[processCount];
 
         try (TxtReporter reporter = new TxtReporter(reporterFilename)) {
-            for (int workerRank = 1; workerRank < processCount; workerRank++) {
-                if (sendNextTask(workerRank)) {
-                    workerIsActive[workerRank] = true;
-                    activeWorkers++;
-                } else {
-                    sendStopTask(workerRank);
+
+
+            while (!queue.isEmpty() || activeWorkers > 0) {
+
+                for (int workerRank = 1; workerRank < processCount && !queue.isEmpty() /* && scheduledPages < maxPages */; workerRank++) {
+                    if (!workerIsActive[workerRank]) {
+                        sendNextTask(workerRank);
+                        //scheduledPages++;
+                        workerIsActive[workerRank] = true;
+                        activeWorkers++;
+                    }
+                }
+
+                if (activeWorkers == 0) {
+                    break;
+                }
+
+                Object[] buffer = new Object[1];
+
+                Status status = MPI.COMM_WORLD.Recv(buffer, 0, 1, MPI.OBJECT, MPI.ANY_SOURCE, MpjTags.RESULT);
+
+                int workerRank = status.source;
+                CrawlResult result = (CrawlResult) buffer[0];
+
+                workerIsActive[workerRank] = false;
+                activeWorkers--;
+
+                visited.add(result.getUrl());
+                reporter.report(result, urlToParentUrlMap.get(result.getUrl()));
+
+                int processedPages = visited.size();
+
+                if (processedPages % 500 == 0) {
+                    double elapsed = (System.nanoTime() - startTime) / 1_000_000_000.0;
+                    double speed = processedPages / elapsed;
+                    System.out.printf("Processed %d pages in %.2f seconds, speed: %.2f pages/s".formatted(processedPages, elapsed, speed));
+                }
+
+                if (!result.hasError()) {
+                    for (String link : result.getLinks()) {
+                        if (!domainFilter.accepts(link)) {
+                            continue;
+                        }
+
+                        if (seen.add(link)) {
+                            queue.add(link);
+                            urlToParentUrlMap.put(link, result.getUrl());
+                        }
+                    }
                 }
             }
 
-            while (activeWorkers > 0) {
-                for (int workerRank = 1; workerRank < processCount; workerRank++) {
-                    if (!workerIsActive[workerRank]) {
-                        continue;
-                    }
-
-                    CrawlResult result = receiveResult(workerRank);
-                    visited.add(result.getUrl());
-                    reporter.report(result, urlToParentUrlMap.get(result.getUrl()));
-
-                    int processedPages = visited.size();
-                    if (processedPages % 500 == 0) {
-                        double elapsed = (System.nanoTime() - startTime) / 1_000_000_000.0;
-                        double speed = processedPages / elapsed;
-                        System.out.println("Processed %d pages in %.2f seconds, speed: %.2f pages/s"
-                                .formatted(processedPages, elapsed, speed));
-                    }
-
-                    if (!result.hasError()) {
-                        for (String link : result.getLinks()) {
-                            if (!domainFilter.accepts(link)) continue;
-
-                            if (seen.add(link)) {
-                                queue.add(link);
-                                urlToParentUrlMap.put(link, result.getUrl());
-                            }
-                        }
-                    }
-
-                    if (sendNextTask(workerRank)) {
-                        workerIsActive[workerRank] = true;
-                    } else {
-                        sendStopTask(workerRank);
-                        workerIsActive[workerRank] = false;
-                        activeWorkers--;
-                    }
-                }
+            for (int workerRank = 1; workerRank < processCount; workerRank++) {
+                sendStopTask(workerRank);
             }
         }
 
@@ -129,15 +148,9 @@ public class MpjDistributedCrawlerImpl implements Crawler {
         return CrawlResult.success(url, HttpUtils.extractUrlLinksBy(page.getDocument()));
     }
 
-    private boolean sendNextTask(int workerRank) {
+    private void sendNextTask(int workerRank) {
         String nextUrl = queue.poll();
-
-        if (nextUrl == null) {
-            return false;
-        }
-
         sendTask(workerRank, nextUrl);
-        return true;
     }
 
     private static String receiveTask() {
@@ -158,11 +171,5 @@ public class MpjDistributedCrawlerImpl implements Crawler {
     private static void sendResult(CrawlResult result) {
         Object[] buffer = new Object[]{result};
         MPI.COMM_WORLD.Send(buffer, 0, 1, MPI.OBJECT, 0, MpjTags.RESULT);
-    }
-
-    private static CrawlResult receiveResult(int workerRank) {
-        Object[] buffer = new Object[1];
-        MPI.COMM_WORLD.Recv(buffer, 0, 1, MPI.OBJECT, workerRank, MpjTags.RESULT);
-        return (CrawlResult) buffer[0];
     }
 }
