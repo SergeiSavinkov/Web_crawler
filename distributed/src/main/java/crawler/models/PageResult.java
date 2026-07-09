@@ -33,8 +33,4 @@ public class PageResult {
     public boolean hasError() {
         return exception != null;
     }
-
-    public String getUrl() {
-        return url;
-    }
 }

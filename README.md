@@ -51,7 +51,7 @@ mvn clean compile dependency:copy-dependencies
 Then run it with the MPJ launcher from your MPJ Express installation:
 
 ```bash
-mpjrun.sh -np 4 -cp "target/classes:target/dependency/*:lib/mpj.jar" crawler.Main https://famnit.upr.si
+mpjrun.bat -np 4 -cp "target/classes;target/dependency/jsoup-1.18.2.jar;lib/mpj.jar" crawler.Main https://famnit.upr.si
 ```
 
 You can replace `4` with the desired number of processes. This version requires at least 2 processes.

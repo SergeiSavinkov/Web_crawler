@@ -19,10 +19,6 @@ public class TxtReporter implements Closeable {
         }
     }
 
-    public synchronized void report(PageResult result, String parentUrl) {
-        report(result.getUrl(), parentUrl, result.hasError(), result.hasError() ? result.getErrorMessage() : null);
-    }
-
     public synchronized void report(CrawlResult result, String parentUrl) {
         report(result.getUrl(), parentUrl, result.hasError(), result.getErrorMessage());
     }

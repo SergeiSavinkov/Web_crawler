@@ -18,10 +18,7 @@ import java.util.Queue;
 import java.util.Set;
 
 public class MpjDistributedCrawlerImpl implements Crawler {
-
-    private static final String DEFAULT_REPORTER_FILENAME = "report.txt";
     private static final String STOP_TASK = "__STOP_CRAWLER_WORKER__";
-    private static final int NO_PAGE_LIMIT = Integer.MAX_VALUE;
 
     private final Queue<String> queue = new LinkedList<>();
     private final Set<String> visited = new HashSet<>();
@@ -31,24 +28,11 @@ public class MpjDistributedCrawlerImpl implements Crawler {
     private final DomainFilter domainFilter;
     private final String reporterFilename;
     private final int processCount;
-    // private final int maxPages;
-    // private int scheduledPages = 0;
-
-    /*
-    public MpjDistributedCrawlerImpl(String url, int processCount) {
-        this(url, DEFAULT_REPORTER_FILENAME, processCount, NO_PAGE_LIMIT);
-    }
 
     public MpjDistributedCrawlerImpl(String url, String reportFileName, int processCount) {
-        this(url, reportFileName, processCount, NO_PAGE_LIMIT);
-    }
-    */
-
-    public MpjDistributedCrawlerImpl(String url, String reportFileName, int processCount /* int maxPages */) {
         this.domainFilter = new DomainFilter(url);
         this.reporterFilename = reportFileName;
         this.processCount = processCount;
-        //this.maxPages = maxPages;
         this.queue.add(url);
         this.seen.add(url);
         this.urlToParentUrlMap.put(url, null);
@@ -69,10 +53,9 @@ public class MpjDistributedCrawlerImpl implements Crawler {
 
             while (!queue.isEmpty() || activeWorkers > 0) {
 
-                for (int workerRank = 1; workerRank < processCount && !queue.isEmpty() /* && scheduledPages < maxPages */; workerRank++) {
+                for (int workerRank = 1; workerRank < processCount && !queue.isEmpty(); workerRank++) {
                     if (!workerIsActive[workerRank]) {
                         sendNextTask(workerRank);
-                        //scheduledPages++;
                         workerIsActive[workerRank] = true;
                         activeWorkers++;
                     }
@@ -95,6 +78,8 @@ public class MpjDistributedCrawlerImpl implements Crawler {
                 visited.add(result.getUrl());
                 reporter.report(result, urlToParentUrlMap.get(result.getUrl()));
 
+
+                // statistics
                 int processedPages = visited.size();
 
                 if (processedPages % 500 == 0) {

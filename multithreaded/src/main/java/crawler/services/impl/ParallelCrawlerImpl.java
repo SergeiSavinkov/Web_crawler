@@ -29,14 +29,14 @@ public class ParallelCrawlerImpl implements Crawler {
     private final DomainFilter domainFilter;
     private final String reporterFilename;
 
+
     public ParallelCrawlerImpl(String url) {
         this(url, DEFAULT_REPORTER_FILENAME);
     }
 
     public ParallelCrawlerImpl(String url, String reportFileName) {
-
         this.domainFilter = new DomainFilter(url);
-        queue.offer(url);
+        queue.add(url);
         seen.add(url);
         this.reporterFilename = reportFileName;
     }
@@ -78,19 +78,16 @@ public class ParallelCrawlerImpl implements Crawler {
                                 continue;
                             }
 
+                            // statistics
                             int count = processedPages.incrementAndGet();
 
                             if (count % 500 == 0) {
 
-                                double elapsed =
-                                        (System.nanoTime() - startTime) / 1_000_000_000.0;
+                                double elapsed = (System.nanoTime() - startTime) / 1_000_000_000.0;
 
                                 double speed = count / elapsed;
 
-                                System.out.printf(
-                                        "Processed %d pages in %.2f s (%.2f pages/sec)%n",
-                                        count, elapsed, speed
-                                );
+                                System.out.printf("Processed %d pages in %.2f s (%.2f pages/sec)%n", count, elapsed, speed);
                             }
 
                             PageResult page = HttpUtils.getPageResultBy(currentUrl);
@@ -107,7 +104,7 @@ public class ParallelCrawlerImpl implements Crawler {
                                 if (!domainFilter.accepts(link)) continue;
 
                                 if (seen.add(link)) {
-                                    queue.offer(link);
+                                    queue.add(link);
                                     urlToParentUrlMap.put(link, currentUrl);
                                 }
                             }

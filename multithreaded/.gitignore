@@ -40,3 +40,4 @@ build/
 
 # Local report file
 report.txt
+.idea/

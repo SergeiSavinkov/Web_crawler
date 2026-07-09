@@ -21,7 +21,6 @@ public class DomainFilter {
         }
     }
 
-    // not accept null/empty/no-HTTP links
     public boolean accepts(String link) {
         if (link == null) {
             return false;

@@ -3,16 +3,13 @@ package crawler;
 import crawler.services.Crawler;
 import crawler.services.impl.ParallelCrawlerImpl;
 
-// cd sequential
-// Assembly: mvn clean compile
-// Execution: mvn exec:java
+// cd multithreaded
+// Assembly and Execution: mvn clean compile exec:java
 public class Main {
     public static void main(String[] args) {
-        String url = "https://famnit.upr.si"; // could be received from args
+        String url = "https://famnit.upr.si";
 
         Crawler crawler = new ParallelCrawlerImpl(url);
-        int numberOfVisitedPages = crawler.crawl();
-        System.out.printf("Number of Visited Pages: %d%n", numberOfVisitedPages);
         long start = System.currentTimeMillis();
 
         int pages = crawler.crawl();
