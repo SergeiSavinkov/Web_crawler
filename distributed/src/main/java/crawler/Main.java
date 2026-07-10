@@ -7,7 +7,7 @@ import mpi.MPI;
 // cd distributed
 // Assembly: mvn clean compile dependency:copy-dependencies
 // Execution:
-// mpjrun.bat -np 4 -cp "target/classes;target/dependency/jsoup-1.18.2.jar;lib/mpj.jar" crawler.Main https://famnit.upr.si
+// mpjrun.sh -np 4 -cp "target/classes:target/dependency/jsoup-1.18.2.jar:lib/mpj.jar" crawler.Main https://famnit.upr.si
 
 public class Main {
 

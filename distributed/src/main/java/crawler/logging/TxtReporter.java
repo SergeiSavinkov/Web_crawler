@@ -1,7 +1,6 @@
 package crawler.logging;
 
 import crawler.models.CrawlResult;
-import crawler.models.PageResult;
 
 import java.io.BufferedWriter;
 import java.io.Closeable;
