@@ -26,14 +26,9 @@ public class TxtReporter implements Closeable {
             String line;
 
             if (result.hasError()) {
-                line = "Page (url='" + result.getUrl() +
-                        "', parentUrl='" + parentUrl +
-                        "') was fetched with the following error: " +
-                        result.getErrorMessage() + ".\n";
+                line = "Page (url='" + result.getUrl() + "', parentUrl='" + parentUrl + "') was fetched with the following error: " + result.getErrorMessage() + ".\n";
             } else {
-                line = "Page (url='" + result.getUrl() +
-                        "', parentUrl='" + parentUrl +
-                        "') got successfully parsed.\n";
+                line = "Page (url='" + result.getUrl() + "', parentUrl='" + parentUrl + "') got successfully parsed.\n";
             }
 
             writer.write(line);
