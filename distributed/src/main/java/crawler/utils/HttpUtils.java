@@ -76,12 +76,10 @@ public final class HttpUtils {
         String responseContentType = connection.getContentType();
 
         if (responseCode != HttpURLConnection.HTTP_OK)
-            throw new IOException("Unexpected response code returned, expected '%s' got '%s'"
-                    .formatted(HttpURLConnection.HTTP_OK, responseCode));
+            throw new IOException("Unexpected response code returned, expected '%s' got '%s'".formatted(HttpURLConnection.HTTP_OK, responseCode));
 
         if (responseContentType == null || !responseContentType.trim().contains(HTML_CONTENT_TYPE))
-            throw new IOException("Unexpected response content type returned, expected '%s' got '%s'"
-                    .formatted(HTML_CONTENT_TYPE, responseCode));
+            throw new IOException("Unexpected response content type returned, expected '%s' got '%s'".formatted(HTML_CONTENT_TYPE, responseCode));
     }
 
     public static Document getDocumentBy(String urlString) throws IOException {

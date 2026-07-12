@@ -85,7 +85,7 @@ public class MpjDistributedCrawlerImpl implements Crawler {
                 if (processedPages % 500 == 0) {
                     double elapsed = (System.nanoTime() - startTime) / 1_000_000_000.0;
                     double speed = processedPages / elapsed;
-                    System.out.printf("Processed %d pages in %.2f seconds, speed: %.2f pages/s".formatted(processedPages, elapsed, speed));
+                    System.out.printf("Processed %d pages in %.2f seconds, speed: %.2f pages/s%n".formatted(processedPages, elapsed, speed));
                 }
 
                 if (!result.hasError()) {
